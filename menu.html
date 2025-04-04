@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Menu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .logo img {
+            max-width: 180px;
+            display: block;
+            margin: 20px auto;
+        }
+        .restaurant-hours {
+            font-size: 24px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .social-buttons a {
+    text-decoration: none;
+    color: white;
+    padding: 10px 20px;
+    border: 2px solid white;
+    border-radius: 5px;
+    background-color: transparent;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.social-buttons a:hover {
+    background-color: white;
+    color: black;
+}
+        .prev, .next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    font-size: 24px;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.prev {
+    left: -60px; /* Moves the button outside the left of the image */
+}
+
+.next {
+    right: -60px; /* Moves the button outside the right of the image */
+}
+
+.prev:hover, .next:hover {
+    background-color: rgba(0, 0, 0, 0.8); /* Darker on hover for better visibility */
+}
+
+.menu-carousel {
+    position: relative;
+    margin: 20px auto;
+    display: none;
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    overflow: visible; /* Ensures the buttons are visible outside the container */
+}
+
+.menu-carousel img {
+    width: 100%;
+    display: block;
+    margin: 0 auto;
+    border-radius: 10px; /* Optional: Adds smooth edges */
+}
+
+
+    </style>
+</head>
+<body>
+    <div class="logo" id="logoContainer"></div>
+    <div class="restaurant-hours" id="hoursContainer"></div>
+    <div class="social-buttons" id="socialButtons"></div>
+    <div class="menu-carousel" id="menuCarousel">
+        <button class="prev" onclick="prevImage()">❮</button>
+        <img id="menuImage" src="" alt="Menu Image">
+        <button class="next" onclick="nextImage()">❯</button>
+    </div>
+    <button id="generateQR">Generate & Download QR Code</button>
+    <canvas id="qrCodeCanvas"></canvas>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+    <script>
+function getQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("data") ? JSON.parse(atob(params.get("data"))) : null;
+}
+
+function setUniqueMenuURL(settings) {
+    const encodedData = btoa(JSON.stringify(settings));
+    return `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+}
+
+// Get settings from the URL
+let settings = getQueryParams();
+let currentIndex = 0;
+let menuImages = [];
+
+if (settings) {
+    document.body.style.backgroundColor = settings.bgColor;
+
+    if (settings.logoFile) {
+        document.getElementById("logoContainer").innerHTML = `<img src="${settings.logoFile}" alt="Restaurant Logo">`;
+    }
+
+    document.getElementById("hoursContainer").textContent = settings.restaurantHours || '';
+
+    document.getElementById("socialButtons").innerHTML = `
+        ${settings.facebookLink ? `<a href="${settings.facebookLink}" target="_blank">Facebook</a>` : ''}
+        ${settings.instagramLink ? `<a href="${settings.instagramLink}" target="_blank">Instagram</a>` : ''}
+        ${settings.whatsappLink ? `<a href="${settings.whatsappLink}" target="_blank">WhatsApp</a>` : ''}
+    `;
+
+    menuImages = settings.menuFiles || [];
+    if (menuImages.length > 0) {
+        document.getElementById("menuImage").src = menuImages[0];
+        document.getElementById("menuCarousel").style.display = "block";
+    }
+} else {
+    alert("No settings found. Please go back and fill out the form.");
+}
+
+// Navigation for menu images
+function prevImage() {
+    if (menuImages.length > 0) {
+        currentIndex = (currentIndex - 1 + menuImages.length) % menuImages.length;
+        document.getElementById("menuImage").src = menuImages[currentIndex];
+    }
+}
+
+function nextImage() {
+    if (menuImages.length > 0) {
+        currentIndex = (currentIndex + 1) % menuImages.length;
+        document.getElementById("menuImage").src = menuImages[currentIndex];
+    }
+}
+
+// Generate & Download QR Code
+document.getElementById("generateQR").addEventListener("click", function() {
+    const uniqueURL = setUniqueMenuURL(settings); // Ensure the QR links to this specific menu
+    const qrCanvas = document.getElementById("qrCodeCanvas");
+    qrCanvas.innerHTML = "";
+    
+    new QRCode(qrCanvas, { text: uniqueURL, width: 200, height: 200 });
+
+    // Download QR Code after generation
+    setTimeout(() => {
+        const qrImage = qrCanvas.getElementsByTagName("img")[0];
+        if (qrImage) {
+            const link = document.createElement("a");
+            link.href = qrImage.src;
+            link.download = "menu_qr_code.png";
+            link.click();
+        }
+    }, 500);
+});
+</script>
+
+</body>
+</html>

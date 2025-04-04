@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Menu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .logo img {
+            max-width: 180px;
+            display: block;
+            margin: 20px auto;
+        }
+        .restaurant-hours {
+            font-size: 24px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .social-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .social-buttons a {
+            text-decoration: none;
+            padding: 10px 25px;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            background-color: transparent;
+            border: 2px solid white;
+            transition: all 0.3s ease;
+        }
+        .social-buttons a:hover {
+            background-color: rgba(275, 275, 275, 0.2);
+        }
+        .menu-carousel {
+            position: relative;
+            margin: 20px auto;
+            display: none;
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+        .menu-carousel img {
+            width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        .prev, .next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            font-size: 24px;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .prev { left: -50px; }  
+        .next { right: -50px; } 
+        .prev:hover, .next:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        /* QR Code Styles */
+        #qrCodeDiv {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo" id="logoContainer"></div>
+    <div class="restaurant-hours" id="hoursContainer"></div>
+    <div class="social-buttons" id="socialButtons"></div>
+
+    <div class="menu-carousel" id="menuCarousel">
+        <button class="prev" onclick="prevImage()">❮</button>
+        <img id="menuImage" src="" alt="Menu Image">
+        <button class="next" onclick="nextImage()">❯</button>
+    </div>
+
+    <button id="generateQR">Generate & Download QR Code</button>
+    <div id="qrCodeDiv"></div> <!-- QR Code Container -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        try {
+            const settings = JSON.parse(localStorage.getItem('restaurantSettings'));
+            if (!settings) throw new Error("No settings found. Please go back and fill out the form.");
+
+            let currentIndex = 0;
+            let menuImages = settings.menuFiles || [];
+
+            // Apply settings to page
+            document.body.style.backgroundColor = settings.bgColor || "#f4f4f4";
+
+            if (settings.logoFile) {
+                document.getElementById("logoContainer").innerHTML = `<img src="${settings.logoFile}" alt="Restaurant Logo">`;
+            }
+
+            document.getElementById("hoursContainer").textContent = settings.restaurantHours || "No hours set.";
+
+            document.getElementById("socialButtons").innerHTML = ` 
+                ${settings.facebookLink ? `<a href="${settings.facebookLink}" target="_blank">Facebook</a>` : ''} 
+                ${settings.instagramLink ? `<a href="${settings.instagramLink}" target="_blank">Instagram</a>` : ''} 
+                ${settings.whatsappLink ? `<a href="${settings.whatsappLink}" target="_blank">WhatsApp</a>` : ''} 
+            `;
+
+            if (menuImages.length > 0) {
+                document.getElementById("menuImage").src = menuImages[0];
+                document.getElementById("menuCarousel").style.display = "block";
+            }
+
+            window.prevImage = function() {
+                currentIndex = (currentIndex === 0) ? menuImages.length - 1 : currentIndex - 1;
+                document.getElementById("menuImage").src = menuImages[currentIndex];
+            };
+
+            window.nextImage = function() {
+                currentIndex = (currentIndex === menuImages.length - 1) ? 0 : currentIndex + 1;
+                document.getElementById("menuImage").src = menuImages[currentIndex];
+            };
+
+            // QR Code Generation and Download
+            document.getElementById("generateQR").onclick = function() {
+                const url = window.location.href;
+                const qrCodeDiv = document.getElementById("qrCodeDiv");
+
+                // Clear previous QR code
+                qrCodeDiv.innerHTML = "";
+
+                // Generate new QR Code
+                new QRCode(qrCodeDiv, {
+                    text: url,
+                    width: 200,
+                    height: 200,
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Wait for QR code rendering
+                setTimeout(function() {
+                    const qrImg = qrCodeDiv.querySelector("img");
+                    if (qrImg) {
+                        // Create download link
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = qrImg.src;
+                        downloadLink.download = "restaurant_menu_qr_code.png";
+                        downloadLink.click();
+                    } else {
+                        alert("Error generating QR Code. Please try again.");
+                    }
+                }, 500);
+            };
+        } catch (error) {
+            alert("Error: " + error.message);
+            console.error(error);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Menu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .logo img {
+            max-width: 180px;
+            display: block;
+            margin: 20px auto;
+        }
+        .restaurant-hours {
+            font-size: 24px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .social-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .social-buttons a {
+            text-decoration: none;
+            padding: 10px 25px;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            background-color: transparent;
+            border: 2px solid white;
+            transition: all 0.3s ease;
+        }
+        .social-buttons a:hover {
+            background-color: rgba(275, 275, 275, 0.2);
+        }
+        .menu-carousel {
+            position: relative;
+            margin: 20px auto;
+            display: none;
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+        .menu-carousel img {
+            width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        .prev, .next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            font-size: 24px;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .prev { left: -50px; }  
+        .next { right: -50px; } 
+        .prev:hover, .next:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        #qrCodeDiv {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        /* Make sure the button is properly aligned and sized for mobile */
+        @media screen and (max-width: 600px) {
+            /* Adjust button position and size for smaller screens */
+            .delivery-btn {
+                right: 15px;  /* Slightly adjust to keep it within view */
+                bottom: 15px; /* Keep it off the screen's edge */
+                width: 80px;  /* Make the button smaller on mobile */
+                height: 80px; /* Adjust size of the button */
+            }
+        }
+        /* Delivery Button with Image (No Background) */
+        .delivery-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 40px; /* Move it a bit left from the right edge */
+            border: none; /* Remove the border */
+            padding: 0; /* Remove padding */
+            background: none; /* No background color, making the image fill the area */
+            cursor: pointer; /* Make it clickable */
+            z-index: 100;
+            width: 100px;  /* Set the button size */
+            height: 100px; /* Set the button size */
+        }
+
+        /* Ensure the image inside the button takes up the full button area */
+        .delivery-btn img {
+            width: 100%; /* Make the image fill the entire button width */
+            height: 100%; /* Make the image fill the entire button height */
+            object-fit: cover; /* Ensure the image covers the button area */
+        }
+
+    </style>
+</head>
+<body>
+    <div class="logo" id="logoContainer"></div>
+    <div class="restaurant-hours" id="hoursContainer"></div>
+    <div class="social-buttons" id="socialButtons"></div>
+
+    <div class="menu-carousel" id="menuCarousel">
+        <button class="prev" onclick="prevImage()">❮</button>
+        <img id="menuImage" src="" alt="Menu Image">
+        <button class="next" onclick="nextImage()">❯</button>
+    </div>
+
+    <button id="generateQR">Generate & Download QR Code</button>
+    <div id="qrCodeDiv"></div>
+
+    <!-- Delivery Button -->
+    <button id="deliveryBtn" class="delivery-btn" style="display: none;">
+        <img src="delivery.png" alt="Delivery Icon">
+    </button>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnxpcmNeTjzSfOGs2QgMwcvEHGn1HwZh8",
+            authDomain: "menudigital-de8ec.firebaseapp.com",
+            projectId: "menudigital-de8ec",
+            storageBucket: "menudigital-de8ec.appspot.com",
+            messagingSenderId: "855228151100",
+            appId: "1:855228151100:web:b9139fcbda8603cb125a39"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.onload = async function () {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const menuId = urlParams.get("id");
+                if (!menuId) throw new Error("No menu ID found in URL.");
+
+                const menuRef = doc(db, "menus", menuId);
+                const menuDoc = await getDoc(menuRef);
+
+                if (!menuDoc.exists()) throw new Error("Menu data not found.");
+
+                const menuData = menuDoc.data();
+
+                // Set background color
+                document.body.style.backgroundColor = menuData.bgColor || "#f4f4f4";
+
+                // Show logo
+                if (menuData.logoURL) {
+                    document.getElementById("logoContainer").innerHTML = `<img src="${menuData.logoURL}" alt="Logo">`;
+                }
+
+                // Show restaurant hours
+                document.getElementById("hoursContainer").textContent = menuData.restaurantHours || "No hours set.";
+
+                // Show social media links
+                document.getElementById("socialButtons").innerHTML = `
+                    ${menuData.facebookLink ? `<a href="${menuData.facebookLink}" target="_blank">Facebook</a>` : ''}
+                    ${menuData.instagramLink ? `<a href="${menuData.instagramLink}" target="_blank">Instagram</a>` : ''}
+                    ${menuData.whatsappLink ? `<a href="${menuData.whatsappLink}" target="_blank">WhatsApp</a>` : ''}
+                `;
+
+                // Handle menu images carousel
+                let currentIndex = 0;
+                let menuImages = menuData.menuURLs || [];
+
+                if (menuImages.length > 0) {
+                    document.getElementById("menuImage").src = menuImages[0];
+                    document.getElementById("menuCarousel").style.display = "block";
+                }
+
+                window.prevImage = function () {
+                    currentIndex = (currentIndex === 0) ? menuImages.length - 1 : currentIndex - 1;
+                    document.getElementById("menuImage").src = menuImages[currentIndex];
+                };
+
+                window.nextImage = function () {
+                    currentIndex = (currentIndex === menuImages.length - 1) ? 0 : currentIndex + 1;
+                    document.getElementById("menuImage").src = menuImages[currentIndex];
+                };
+
+                // Delivery button
+                if (menuData.deliveryNumber) {
+                    document.getElementById("deliveryBtn").style.display = "block";
+                    document.getElementById("deliveryBtn").onclick = function () {
+                        window.location.href = `tel:${menuData.deliveryNumber}`;
+                    };
+                }
+
+                // QR code generation and download
+                document.getElementById("generateQR").onclick = function () {
+                    const url = window.location.href;
+                    const qrCodeDiv = document.getElementById("qrCodeDiv");
+                    qrCodeDiv.innerHTML = "";
+
+                    new QRCode(qrCodeDiv, {
+                        text: url,
+                        width: 200,
+                        height: 200,
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+
+                    setTimeout(() => {
+                        const qrImg = qrCodeDiv.querySelector("img");
+                        const canvas = qrCodeDiv.querySelector("canvas");
+
+                        if (qrImg && qrImg.src) {
+                            triggerDownload(qrImg.src);
+                        } else if (canvas) {
+                            const dataURL = canvas.toDataURL("image/png");
+                            triggerDownload(dataURL);
+                        } else {
+                            alert("QR Code failed to render. Please try again.");
+                        }
+                    }, 1000); // Allow QR code to fully render
+                };
+
+                // Helper to trigger download
+                function triggerDownload(dataURL) {
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = "restaurant_menu_qr_code.png";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+
+            } catch (err) {
+                alert("Error: " + err.message);
+                console.error(err);
+            }
+        };
+    </script>
+
+</body>
+</html>
